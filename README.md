@@ -12,6 +12,7 @@ results.csv shows the results of comparison between
 - true labels from LFR
 - labels identified by Louvain community detection
 over 100 iterations.
+- labels iddentified by "consensus community detection" (which is based on repeated Louvain)
 
 
 
