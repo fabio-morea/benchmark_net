@@ -1,29 +1,16 @@
 # Author: Fabio Morea @ Area Science Park
 # Acknowledgments: this research work is supervided by prof. Domenico De Stefano, within the frame of PhD in Applied Data Science and Artificial Intelligence @ University of Trieste
 
-# Package: Labour Market Network - version 1.0
+# Package: test consensus community detection algorithm
 # Description: R program to extract information from labour market data.
 # Original data is not included in the package as it contains personal information
 # Test data is contains no personal information
 
 # SPDX-License-Identifier: CC-BY-4.0
 
-# GitLab: https://gitlab.com/fabio-morea-areasciencepark/labour-market-network
+# Github: https://github.com/fabio-morea/benchmark_net
 
-# script 5: consensus
-
-#A good clusteing algoritm in this domain should identify clusters that
-#-	Have at leas min.point 
-#-	All trivial clusters of 1 or 2 points are grouped in a cluster 0 FRINGE
-#-	Each point is assigned with a PROBABILITY of being part of consensus cluster (as in fuzzy clustering) so we can identify points that are confidently placed in this cluster and points that are not. A result is a matrix of probabilities (N.points X N_clusters)
-#- clusters have better ehomogeneity than the original network
-#- high intra cluster connections, low inter cluster connections
-
-#We use consensus, similar to random forrest
-#-	Small perturbation of algoritm parameters and network (randomly exclude a fraction of elements with low coreness)
-#-	Pairwise omparison
-
-
+ 
 ## clear terminal
 shell("cls")
 
@@ -44,7 +31,8 @@ source("./code/functions-network-analysis.R")
 
 ## load graph
 print("Loading graph...")
-g <- read_graph("./results/graph.csv", format="graphml")
+g <- read_graph("./FLR_benchmark_5.glm", format="graphml")
+print(g)
 #g <- induced.subgraph(g, V(g)[ V(g)$CL0 == 1]) 
 stopifnot(gorder(g) >0)
 n_trials = 100
