@@ -10,9 +10,8 @@ Mixing parameter mu ranges from 0.05 to 0.95.
 
 results.csv shows the results of comparison between
 - true labels from LFR
-- labels identified by Louvain community detection
-over 100 iterations.
-- labels iddentified by "consensus community detection" (which is based on repeated Louvain)
+- labels identified by Louvain community detection over 100 iterations (a distribution, summarized by mean and std)
+- labels identified by "consensus community detection" (a single result, based on repeated Louvain and pairwise comparison)
 
 
 
