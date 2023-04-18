@@ -8,6 +8,7 @@ Mixing parameter mu ranging from 0.05 to 0.95
 results.csv shows the results of comparison between
 - true labels from LFR
 - labels identified by Louvain community detection
-over 100 iterations
+over 100 iterations.
+
 
 
