@@ -134,7 +134,7 @@ compare_clustering_results <- function(all_clusters,
 
 dfresults <- data.frame(method = character(), mu = numeric(), nc = numeric(), nmi = numeric())
 
-for (mui in seq(5, 95, 5)) {
+for (mui in seq(10, 99, 5)) {
   	filename = paste0("FLR_benchmark_", mui,".gml")
 	## load graph
 	print(paste("Loading graph...", filename))
@@ -149,12 +149,12 @@ for (mui in seq(5, 95, 5)) {
 
 	all_clusters <-  cluster_N_times (	g, 
 										n_trials = n_trials, 
-										alpha = 5/100 , 
+										alpha = 1/100 , 
 										res = c(0.9, 1.0, 1,1),
 										epsilon = 1/100) 
 
 	as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
-		write_csv("clusters_N.csv")
+		write_csv("results/mixing_matrix.csv")
 	
 	for (i in 1:n_trials){
 		louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
@@ -207,7 +207,7 @@ for (mui in seq(5, 95, 5)) {
 	print(paste('completed mu = ', mui/100))
 }
 
-write.csv(dfresults, file = "results.csv")
+write.csv(dfresults, file = "results/summary_results.csv")
 
 
 
