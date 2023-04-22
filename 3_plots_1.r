@@ -72,36 +72,44 @@ ggsave("results/plot_number_of_communities.png")
 # }
 
 ## community size distribution on 100 Louvain
-mm  <- read.csv(file = "results/mixing_matrix.csv")
-df3 <-  data.frame(x = rep(1, 200))
-for (i in 1:ncol(mm)){ 
-    com_sizes <- as.vector( table(mm[,i]) )
-    com_sizes <- sort(com_sizes, decreasing = FALSE)
-    com_sizes <- c(com_sizes, rep(NA, 100))
-    com_sizes <- com_sizes[1:100]
-    df3[,i] <- com_sizes
+plot_comm_dist <- function(filename){
+
+    mm  <- read.csv(file = filename)
+    df3 <-  data.frame(x = rep(1, 200))
+    for (i in 1:ncol(mm)){ 
+        com_sizes <- as.vector( table(mm[,i]) )
+        com_sizes <- sort(com_sizes, decreasing = FALSE)
+        com_sizes <- c(com_sizes, rep(NA, 100))
+        com_sizes <- com_sizes[1:100]
+        df3[,i] <- com_sizes
+    }
+    df3 <- df3[,2:ncol(mm)] 
+    # df3 <- df3[ ,order(df3[1,]) ]
+    # names(df3) <- paste0("t", 1:length(df3))
+
+    df4 <- df3 %>%
+        pivot_longer(everything(), names_to = "trial", values_to = "Size")  
+    p4 <- ggplot(df4, aes(x = trial, y=Size))+
+        geom_line(color='gray', size = 2, alpha = 0.5)+
+        geom_point(color='blue', size = 2, alpha = 0.5)+
+        theme_light() +
+        ylim(0, 200)  + 
+        scale_x_discrete(labels= NULL)+
+        xlab("") + ggtitle(paste("Modularity based community detection", filename))
+
+    print(p4)
+    ggsave(paste0("results/plot_comm_size", filename, ".png"))
 }
-df3 <- df3[,2:ncol(mm)] 
-# df3 <- df3[ ,order(df3[1,]) ]
-# names(df3) <- paste0("t", 1:length(df3))
 
-df4 <- df3 %>%
-    pivot_longer(everything(), names_to = "trial", values_to = "Size")  
-p4 <- ggplot(df4, aes(x = trial, y=Size))+
-    geom_line(color='gray', size = 2, alpha = 0.5)+
-    geom_point(color='blue', size = 2, alpha = 0.5)+
-    theme_light() +
-    ylim(0, 200)  + 
-    scale_x_discrete(labels= NULL)+
-    xlab("") + ggtitle("Modularity based community detection (100 independent trials)")
-
-print(p4)
-ggsave("results/plot_comm_size.png")
+plot_comm_dist("results/mixing_matrix10.csv")
+plot_comm_dist("results/mixing_matrix30.csv")
+plot_comm_dist("results/mixing_matrix60.csv")
+plot_comm_dist("results/mixing_matrix80.csv")
 
 
 
-p4h <- ggplot(df4, aes(  x=Size))+
-    geom_histogram(color = 'white', fill = 'blue')+
-    theme_light() 
-print(p4h)
-ggsave(width = 6, height = 3,"results/plot_comm_size_hist.png")
+# p4h <- ggplot(df4, aes(  x=Size))+
+#     geom_histogram(color = 'white', fill = 'blue')+
+#     theme_light() 
+# print(p4h)
+# ggsave(width = 6, height = 3,"results/plot_comm_size_hist.png")

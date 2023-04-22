@@ -134,9 +134,9 @@ compare_clustering_results <- function(all_clusters,
 
 
 #####################################
-reps = 3
-n_trials = 5
-mu_values = seq(10, 99, 50)
+reps = 5
+n_trials = 10
+mu_values = seq(10, 99, 10)
 #####################################
 
 dfresults <- data.frame(method = character(),
@@ -159,16 +159,14 @@ for (rep in 1:reps){
 		
 		true_labels <- data.frame(V(g)$name, V(g)$community)
 		
-		n_trials = 100
-
 		all_clusters <-  cluster_N_times (	g, 
 											n_trials = n_trials, 
-											alpha = 1/100 , 
+											alpha = 5/100 , 
 											res = c(0.9, 1.0, 1,1),
 											epsilon = 1/100) 
 
 		as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
-			write_csv("results/mixing_matrix.csv")
+			write_csv(paste0("results/mixing_matrix",mui,".csv"))
 		
 		for (i in 1:n_trials){
 			louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
@@ -184,8 +182,8 @@ for (rep in 1:reps){
 		}
 		ccs <- compare_clustering_results(all_clusters, 
 							threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
-							min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
-							min_weight = 1/100)  # (community weight / total network weight) below which a node is assigned to community 0
+							min_vids = 3, 		 # number of vertices below which a node is assigend to community 0
+							min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
 
 		#print("sorting cluster labels...")
 		V(g)$comm_louvain <- 0
@@ -207,7 +205,7 @@ for (rep in 1:reps){
 			cl_new_labels <- cl_new_labels + 1
 		}	
 		cons_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
-		com_sizes <- as.vector( table(mm[,i]) )
+		com_sizes <- as.vector( table(cons_labels))
 		com_sizes <- sort(com_sizes, decreasing = FALSE)
 		com_sizes <- c(com_sizes, rep(NA, 200))
 		com_sizes <- com_sizes[1:200]
