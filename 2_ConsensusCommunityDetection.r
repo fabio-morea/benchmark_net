@@ -41,6 +41,7 @@ cluster_N_times <- function(g, n_trials, alpha = 0.01 , res , epsilon = .0001) {
 		n_null <- as.integer(alpha * n_items)
 		applied_weights <- E(g)$ww 
 		applied_weights[sample(n_items,n_null)] <- epsilon
+		E(g)$weight <- applied_weights
     	random_resolution = as.numeric(sample(res, 1))
 		cluster_tmp <- cluster_louvain(g, weights = applied_weights , resolution = random_resolution)
     	all_clusters <- cbind(all_clusters,cluster_tmp$membership)
@@ -61,7 +62,7 @@ cluster_N_times <- function(g, n_trials, alpha = 0.01 , res , epsilon = .0001) {
 compare_clustering_results <- function(all_clusters, 
 					threshold = .5, 	 # proportion of membership to be assigned to community 0
 					min_vids = 1, 		 # number of vertices to be assigned to community 0
-					min_weight = 1/1000)# fraction of whole network weight to be assigned to community 0
+					min_weight = 1/10000)# fraction of whole network weight to be assigned to community 0
  { 
 	
 	# inspect and compare the clustering results
@@ -134,8 +135,8 @@ compare_clustering_results <- function(all_clusters,
 
 
 #####################################
-reps = 5
-n_trials = 10
+reps = 20
+n_trials = 100
 mu_values = seq(10, 99, 10)
 #####################################
 
@@ -162,8 +163,8 @@ for (rep in 1:reps){
 		all_clusters <-  cluster_N_times (	g, 
 											n_trials = n_trials, 
 											alpha = 5/100 , 
-											res = c(0.9, 1.0, 1,1),
-											epsilon = 1/100) 
+											res = c(0.8, 1.0, 1,2),
+											epsilon = 1/10000) 
 
 		as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
 			write_csv(paste0("results/mixing_matrix",mui,".csv"))
@@ -182,7 +183,7 @@ for (rep in 1:reps){
 		}
 		ccs <- compare_clustering_results(all_clusters, 
 							threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
-							min_vids = 3, 		 # number of vertices below which a node is assigend to community 0
+							min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
 							min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
 
 		#print("sorting cluster labels...")
