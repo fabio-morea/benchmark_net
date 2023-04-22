@@ -132,82 +132,104 @@ compare_clustering_results <- function(all_clusters,
 	return(ccs)
 }
 
-dfresults <- data.frame(method = character(), mu = numeric(), nc = numeric(), nmi = numeric())
 
-for (mui in seq(10, 99, 5)) {
-  	filename = paste0("FLR_benchmark_", mui,".gml")
-	## load graph
-	print(paste("Loading graph...", filename))
-	g <- read_graph(filename, format="gml")
-	E(g)$ww <- rep(1,length(E(g)))
-	V(g)$str <- strength(g)
-	V(g)$name <- paste0("V" , V(g)$label)
-	
-	true_labels <- data.frame(V(g)$name, V(g)$community)
-	
-	n_trials = 100
+#####################################
+reps = 3
+n_trials = 5
+mu_values = seq(10, 99, 50)
+#####################################
 
-	all_clusters <-  cluster_N_times (	g, 
-										n_trials = n_trials, 
-										alpha = 1/100 , 
-										res = c(0.9, 1.0, 1,1),
-										epsilon = 1/100) 
+dfresults <- data.frame(method = character(),
+						repetition = numeric(),
+						mu = numeric(), 
+						nc = numeric(), 
+						nmi = numeric())
 
-	as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
-		write_csv("results/mixing_matrix.csv")
-	
-	for (i in 1:n_trials){
-		louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
-		n_m_i = NMI(true_labels,louvain_labels)
-		#print(paste("Normalized Mutual Information",n_m_i))
-		dfresults <- rbind(dfresults, data.frame(
-							method = "single_louvain", 
-							mu = mui, 
-							nc = max(all_clusters[,i]),
-							nmi = n_m_i))
-		
-	}
-	ccs <- compare_clustering_results(all_clusters, 
-						threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
-						min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
-						min_weight = 1/100)  # (community weight / total network weight) below which a node is assigned to community 0
-
-
-	#print("sorting cluster labels...")
-	V(g)$comm_louvain <- 0
-	cl_conv_table = as.data.frame(table(ccs$mbshp)) %>%
-		rename(comm_size = Freq) %>%
-		rename(cccc=Var1) %>%
-		arrange(-comm_size)
-
+df_cons_labels <- data.frame(x = rep(1, 200))
  
-	#print("assigning cluster labels...")
-	cl_new_labels <- 1
-	for (i in cl_conv_table$cccc){
-		selected_vids <- ccs %>%
-		filter(mbshp == i) %>%
-		select(name) %>%
-		pull() %>%
-		unlist()
+for (rep in 1:reps){
+	for (mui in mu_values) {
+		filename = paste0("FLR_benchmark_", mui,".gml")
+		## load graph
+		print(paste("Repetition ", rep, "Loading graph...", filename))
+		g <- read_graph(filename, format="gml")
+		E(g)$ww <- rep(1,length(E(g)))
+		V(g)$str <- strength(g)
+		V(g)$name <- paste0("V" , V(g)$label)
+		
+		true_labels <- data.frame(V(g)$name, V(g)$community)
+		
+		n_trials = 100
 
+		all_clusters <-  cluster_N_times (	g, 
+											n_trials = n_trials, 
+											alpha = 1/100 , 
+											res = c(0.9, 1.0, 1,1),
+											epsilon = 1/100) 
 
-		V(g)[ V(g)$name %in% selected_vids ]$comm_louvain <- cl_new_labels
-		cl_new_labels <- cl_new_labels + 1
-	}	
-	louvain_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
+		as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
+			write_csv("results/mixing_matrix.csv")
+		
+		for (i in 1:n_trials){
+			louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
+			n_m_i = NMI(true_labels,louvain_labels)
+			#print(paste("Normalized Mutual Information",n_m_i))
+			dfresults <- rbind(dfresults, data.frame(
+								method = "single_louvain", 
+								repetition = i,
+								mu = mui, 
+								nc = max(all_clusters[,i]),
+								nmi = n_m_i))
+			
+		}
+		ccs <- compare_clustering_results(all_clusters, 
+							threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
+							min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
+							min_weight = 1/100)  # (community weight / total network weight) below which a node is assigned to community 0
 
-	n_m_i = NMI(true_labels,louvain_labels)
-	print(paste("Normalized Mutual Information",n_m_i))
+		#print("sorting cluster labels...")
+		V(g)$comm_louvain <- 0
+		cl_conv_table = as.data.frame(table(ccs$mbshp)) %>%
+			rename(comm_size = Freq) %>%
+			rename(cccc=Var1) %>%
+			arrange(-comm_size)
+	
+		#print("assigning cluster labels...")
+		cl_new_labels <- 1
+		for (i in cl_conv_table$cccc){
+			selected_vids <- ccs %>%
+			filter(mbshp == i) %>%
+			select(name) %>%
+			pull() %>%
+			unlist()
 
-	dfresults <- rbind(dfresults, data.frame(method = "cons_louvain", 
-												mu = mui,
-												nc = max(V(g)$comm_louvain),
-												nmi = n_m_i))
+			V(g)[ V(g)$name %in% selected_vids ]$comm_louvain <- cl_new_labels
+			cl_new_labels <- cl_new_labels + 1
+		}	
+		cons_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
+		com_sizes <- as.vector( table(mm[,i]) )
+		com_sizes <- sort(com_sizes, decreasing = FALSE)
+		com_sizes <- c(com_sizes, rep(NA, 200))
+		com_sizes <- com_sizes[1:200]
+		df_cons_labels <- com_sizes
 
-	print(paste('completed mu = ', mui/100))
+		n_m_i = NMI(true_labels,cons_labels)
+		print(paste("Normalized Mutual Information",n_m_i))
+
+		dfresults <- rbind(dfresults, data.frame(method = "cons_louvain", 
+													repetition = rep,
+													mu = mui,
+													nc = max(V(g)$comm_louvain),
+													nmi = n_m_i))
+
+		print(paste('completed mu = ', mui/100))
+	}
 }
 
-write.csv(dfresults, file = "results/summary_results.csv")
+
+write.csv(dfresults, 		file = "results/summary_results.csv")
+write.csv(df_cons_labels, 	file = "results/cons_labels.csv")
+
 
 
 

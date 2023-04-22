@@ -1,6 +1,6 @@
 
 library(ggplot2)
-
+library(tidyverse)
 
 data_summary <- function(data, varname, groupnames){
     # Function to calculate the mean and the standard deviation  for each group
@@ -19,8 +19,6 @@ data_summary <- function(data, varname, groupnames){
 }
 
 
-
-
 df <- read.csv(file = "results/summary_results.csv")
 
 df$nmi <- df$value
@@ -33,6 +31,7 @@ df1 <- data_summary(df, varname="nmi",
 p1 <- ggplot(df1, aes(x = mu, y = nmi, group = method, color = method)) +
         geom_line( ) +
         geom_point(aes(shape = method)) +
+        scale_color_manual(values=c("red", "blue")) +
         geom_errorbar(aes(ymin=nmi-sd, ymax=nmi+sd), width=.2,position=position_dodge(0.05))+
         ylim(0,1) + theme_bw() +
         xlab("mu") +
@@ -51,6 +50,7 @@ p2 <- ggplot(df2, aes(x = mu, y = nc, group = method, color = method)) +
         geom_line( ) +
         geom_point(aes(shape = method)) +
         geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
+        scale_color_manual(values=c("red", "blue")) +
         theme_bw() +
         xlab("mu") +
         ylab("nc") +
@@ -61,35 +61,47 @@ ggsave("results/plot_number_of_communities.png")
 
 
 
-library(tidyverse)
 
+## community size distribution on LFR benchmark
+# for (mui in seq(10, 99, 5)) {
+#   	filename = paste0("FLR_benchmark_", mui,".gml")
+# 	## load graph
+# 	print(paste("Loading graph...", filename))
+# 	g <- read_graph(filename, format="gml")
+#     print(V(g)$community)
+# }
+
+## community size distribution on 100 Louvain
 mm  <- read.csv(file = "results/mixing_matrix.csv")
-p3 <- ggplot()
- 
-df3 <-  data.frame(x = rep(36, 100))
+df3 <-  data.frame(x = rep(1, 200))
 for (i in 1:ncol(mm)){ 
     com_sizes <- as.vector( table(mm[,i]) )
-
-    # sort list in descending order
-    com_sizes <- sort(com_sizes, decreasing = TRUE)
-
-    # add 100 NA values to the list
+    com_sizes <- sort(com_sizes, decreasing = FALSE)
     com_sizes <- c(com_sizes, rep(NA, 100))
-
-    # keep only first 100 values of  com_sizes
     com_sizes <- com_sizes[1:100]
-
-  
     df3[,i] <- com_sizes
 }
-df3 <- df3[,2:ncol(mm)]
+df3 <- df3[,2:ncol(mm)] 
+# df3 <- df3[ ,order(df3[1,]) ]
+# names(df3) <- paste0("t", 1:length(df3))
+
 df4 <- df3 %>%
     pivot_longer(everything(), names_to = "trial", values_to = "Size")  
+p4 <- ggplot(df4, aes(x = trial, y=Size))+
+    geom_line(color='gray', size = 2, alpha = 0.5)+
+    geom_point(color='blue', size = 2, alpha = 0.5)+
+    theme_light() +
+    ylim(0, 200)  + 
+    scale_x_discrete(labels= NULL)+
+    xlab("") + ggtitle("Modularity based community detection (100 independent trials)")
 
-
-p4 <- ggplot(df4, aes(x = trial, y=Size, group = trial))+
-    geom_line(color='black')+
-    geom_point(color='red')+
-    theme_void() 
 print(p4)
 ggsave("results/plot_comm_size.png")
+
+
+
+p4h <- ggplot(df4, aes(  x=Size))+
+    geom_histogram(color = 'white', fill = 'blue')+
+    theme_light() 
+print(p4h)
+ggsave(width = 6, height = 3,"results/plot_comm_size_hist.png")
