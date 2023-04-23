@@ -6,12 +6,12 @@ library(igraph)
 df3 <-  data.frame(x = rep(1, 37))
 ## community size distribution on LFR benchmark
 i <- 1
-for (mui in seq(10, 11, 10)) {
+for (mui in seq(10, 99, 10)) {
   	filename = paste0("FLR_benchmark_", mui,".gml")
 	## load graph
 	print(paste("Loading graph...", filename))
 	g <- read_graph(filename, format="gml")
-    print(as.vector(table(V(g)$community)))
+    #print(as.vector(table(V(g)$community)))
     com_sizes <- as.vector(table(V(g)$community))
     com_sizes <- sort(com_sizes, decreasing = TRUE)
     com_sizes <- c(com_sizes, rep(NA, 37))
@@ -19,7 +19,7 @@ for (mui in seq(10, 11, 10)) {
     df3[,i] <- com_sizes
     i = i + 1
 }
-print(df3)
+#print(df3)
 write.csv(df3, "df3.csv")
 
 df4 <- df3 %>%
@@ -40,7 +40,7 @@ ggsave(width = 2, height = 3,"results/plot_comm_size.png")
  
 
 p4h <- ggplot(df4, aes(  x=Size))+
-    geom_histogram(color = 'white', fill = 'gray')+
-    theme_light() 
+    geom_histogram(, bins = 10,color = 'white', fill = 'gray')+
+    theme_light() + ggtitle("LFR - community size distribution")
 print(p4h)
 ggsave(width = 6, height = 3,"results/plot_comm_size_hist.png")

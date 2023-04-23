@@ -1,0 +1,24 @@
+---
+title: "test df nested lists"
+output: pdf_notebook
+---
+
+
+
+```{r}
+
+df <- data.frame(n = c(1,2,3),
+                 ff = c(2.3, 4.5, 6.7),
+                 csd = list(c(1,2,3), c(4,5,6), c(7,8,9)))
+
+ 
+
+library(tidyverse)
+
+df %>% 
+  rowwise() %>% 
+  mutate(csd_list = csd[[1]]) %>% 
+  print("this is the list") %>% 
+  print(csd_list)
+```
+

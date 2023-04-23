@@ -8,15 +8,13 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # Github: https://github.com/fabio-morea/benchmark_net
 
- 
+
+echo = F
 ## clear terminal
 shell("cls")
 
-## debug mode
-echo <- F
-
 ## load libraries
-suppressPackageStartupMessages(library(tidyverse))
+library(tidyverse, warn.conflicts = FALSE)
 library(igraph)
 library(glue)
 library(ggpubr)
@@ -135,59 +133,89 @@ compare_clustering_results <- function(all_clusters,
 }
 
 
+##################################### PARAMETERS
+
+# FLR benchmarl
+mu_values = seq(10, 99, 80)
+
+# repeated Louvain with modified params
+n_trials = 20
+alpha = 5/100 
+res = c(0.8, 0.9, 1.0, 1,1, 1,2)
+epsilon = 1/10000
+
+# consensus
+reps = 20
+
+
 #####################################
-reps = 10
-n_trials = 50
-mu_values = seq(10, 99, 10)
-#####################################
 
-dfresults <- data.frame(method = character(),
-						repetition = numeric(),
-						mu = numeric(), 
-						modularit = numeric(),
-						nc = numeric(), 
-						nmi = numeric())
+dfresults <- tibble(	rep = 0,
+						trial = 0,
+						mu = 0, 
+						a = 0.0,
+						r = 0.0,
+						method = "_",
+						modularit = 0.0,
+						nc = 0, 
+						nmi = 0.0, 
+						membership = list() )%>% head(0)
 
-for (rep in 1:reps){
-	for (mui in mu_values) {
-		filename = paste0("FLR_benchmark_", mui,".gml")
-		## load graph
-		print(paste("Repetition ", rep, "Loading graph...", filename))
-		g <- read_graph(filename, format="gml")
-		E(g)$ww <- rep(1,length(E(g)))
-		V(g)$str <- strength(g)
-		V(g)$name <- paste0("V" , V(g)$label)
-		
-		true_labels <- data.frame(V(g)$name, V(g)$community)
-		
-		all_clusters <-  cluster_N_times (	g, 
-											n_trials = n_trials, 
-											alpha = 10/100 , 
-											res = c(0.8, 0.9, 1.0, 1,1, 1,2),
-											epsilon = 1/10000) 
+print(dfresults)
 
-		as.data.frame(all_clusters, row.names = V(g)$name ) %>% 
-			write_csv(paste0("results/mixing_matrix",mui,".csv"))
-		
+j <- 0
+
+for (mui in mu_values){
+	
+	filename = paste0("FLR_benchmark_", mui,".gml")
+	print(paste("Mu ", mui, "Loading graph...", filename))
+	g <- read_graph(filename, format="gml")
+	E(g)$ww <- rep(1,length(E(g)))
+	V(g)$str <- strength(g)
+	V(g)$name <- paste0("V" , V(g)$label)
+	true_labels <- data.frame(V(g)$name, V(g)$community)
+
+	for (rep in 1:reps){
+		print(paste("Repetition", rep))
+
+		all_clusters <- c()
 		for (i in 1:n_trials){
+			print(paste("Trial", i))
+			n_items <- length(E(g))
+			n_null <- as.integer(alpha * n_items)
+			applied_weights <- E(g)$ww 
+			applied_weights[sample(n_items,n_null)] <- epsilon
+			E(g)$weight <- applied_weights
+			resol = as.numeric(sample(res, 1))
+			cluster_tmp <- cluster_louvain(g, weights = applied_weights , resolution = resol)
+			all_clusters <- cbind(all_clusters,cluster_tmp$membership)
+			m <- modularity (g,  cluster_tmp$membership)	
+			mbs <- list(cluster_tmp$membership)		
+			 	 
 			louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
-			n_m_i = NMI(true_labels,louvain_labels)
-			#print(paste("Normalized Mutual Information",n_m_i))
-			dfresults <- rbind(dfresults, data.frame(
-								method = "single_louvain", 
-								repetition = i,
+			n_m_i = NMI(true_labels,louvain_labels)$value
+
+			j <- j + 1 
+			dfresults[j,] <- list(
+								rep = rep,
+								trial = i,
 								mu = mui, 
-								modularit = modularity(g, all_clusters[,i]),
-								nc = max(all_clusters[,i]),
-								nmi = n_m_i))
-			
+								a = alpha,
+								r = resol,
+								method = "LV",
+								modularit = m,
+								nc = max(cluster_tmp$membership), 
+								nmi = n_m_i ,
+								membership  = as.list(mbs)
+								)			
 		}
+ 
 		ccs <- compare_clustering_results(all_clusters, 
 							threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
 							min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
 							min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
 
-		#print("sorting cluster labels...")
+
 		V(g)$comm_louvain <- 0
 		cl_conv_table = as.data.frame(table(ccs$mbshp)) %>%
 			rename(comm_size = Freq) %>%
@@ -196,9 +224,9 @@ for (rep in 1:reps){
 	
 		#print("assigning cluster labels...")
 		cl_new_labels <- 1
-		for (i in cl_conv_table$cccc){
+		for (clid in cl_conv_table$cccc){
 			selected_vids <- ccs %>%
-			filter(mbshp == i) %>%
+			filter(mbshp == clid) %>%
 			select(name) %>%
 			pull() %>%
 			unlist()
@@ -207,28 +235,34 @@ for (rep in 1:reps){
 			cl_new_labels <- cl_new_labels + 1
 		}	
 		cons_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
+		n_m_i = NMI(true_labels,cons_labels)$value
+
+		j <- j + 1 
+ 
+		dfresults[j,] <- list(
+							rep = rep,
+							trial = i,
+							mu = mui, 
+							a = -1,
+							r = -1,
+							method = "CONS",
+							modularit = modularity(g, V(g)$comm_louvain + 1 ),
+							nc = max(V(g)$comm_louvain + 1), 
+							nmi = n_m_i ,
+							membership  = list(V(g)$comm_louvain)
+							)	
+		 
 		as.data.frame(cons_labels, row.names = V(g)$name ) %>% 
 			write_csv(paste0("results/cons_labels",mui,".csv"))
-
-		n_m_i = NMI(true_labels,cons_labels)
-		print(paste("Normalized Mutual Information",n_m_i))
-
-		dfresults <- rbind(dfresults, data.frame(method = "cons_louvain", 
-													repetition = rep,
-													mu = mui,
-													modularit = modularity(g, V(g)$comm_louvain + 1 ),
-													nc = max(V(g)$comm_louvain + 1),
-													nmi = n_m_i))
-
-		print(paste('completed mu = ', mui/100))
 	}
 }
 
-
-write.csv(dfresults, 		file = "results/summary_results.csv")
+library(rjson)
+library(jsonlite) 
+json_data <- toJSON(dfresults, 		file = "results/summary_results.csv")
  
-
-
+write(json_data, file="results.JSON")
+ 
 print("Done!")
 
 
