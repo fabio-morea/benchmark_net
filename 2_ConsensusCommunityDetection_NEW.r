@@ -136,17 +136,16 @@ compare_clustering_results <- function(all_clusters,
 ##################################### PARAMETERS
 
 # FLR benchmarl
-mu_values = seq(10, 99, 80)
+mu_values = seq(10, 99, 10)
 
 # repeated Louvain with modified params
 n_trials = 20
-alpha = 5/100 
-res = c(0.8, 0.9, 1.0, 1,1, 1,2)
-epsilon = 1/10000
+alphas = c(0.0, 0.05, 0.1 )
+res = c(0.9, 1.0, 1.1)
+epsilon = 1/1000
 
 # consensus
-reps = 20
-
+reps = 10
 
 #####################################
 
@@ -161,8 +160,6 @@ dfresults <- tibble(	rep = 0,
 						nmi = 0.0, 
 						membership = list() )%>% head(0)
 
-print(dfresults)
-
 j <- 0
 
 for (mui in mu_values){
@@ -175,25 +172,69 @@ for (mui in mu_values){
 	V(g)$name <- paste0("V" , V(g)$label)
 	true_labels <- data.frame(V(g)$name, V(g)$community)
 
-	for (rep in 1:reps){
-		print(paste("Repetition", rep))
+	for (alpha in alphas){
+		print(paste("Alpha", alpha))
+		for (rep in 1:reps){
+			print(paste("Repetition", rep))
 
-		all_clusters <- c()
-		for (i in 1:n_trials){
-			print(paste("Trial", i))
-			n_items <- length(E(g))
-			n_null <- as.integer(alpha * n_items)
-			applied_weights <- E(g)$ww 
-			applied_weights[sample(n_items,n_null)] <- epsilon
-			E(g)$weight <- applied_weights
-			resol = as.numeric(sample(res, 1))
-			cluster_tmp <- cluster_louvain(g, weights = applied_weights , resolution = resol)
-			all_clusters <- cbind(all_clusters,cluster_tmp$membership)
-			m <- modularity (g,  cluster_tmp$membership)	
-			mbs <- list(cluster_tmp$membership)		
-			 	 
-			louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
-			n_m_i = NMI(true_labels,louvain_labels)$value
+			all_clusters <- c()
+			for (i in 1:n_trials){
+				print(paste("Trial", i))
+				n_items <- length(E(g))
+				n_null <- as.integer(alpha * n_items)
+				applied_weights <- E(g)$ww 
+				applied_weights[sample(n_items,n_null)] <- epsilon
+				E(g)$weight <- applied_weights
+				resol = as.numeric(sample(res, 1))
+				cluster_tmp <- cluster_louvain(g, weights = applied_weights , resolution = resol)
+				all_clusters <- cbind(all_clusters,cluster_tmp$membership)
+				m <- modularity (g,  cluster_tmp$membership)	
+				mbs <- list(cluster_tmp$membership)		
+					
+				louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
+				n_m_i = NMI(true_labels,louvain_labels)$value
+
+				j <- j + 1 
+				dfresults[j,] <- list(
+									rep = rep,
+									trial = i,
+									mu = mui, 
+									a = alpha,
+									r = resol,
+									method = "LV",
+									modularit = m,
+									nc = max(cluster_tmp$membership), 
+									nmi = n_m_i ,
+									membership  = as.list(mbs)
+									)			
+			}
+	
+			ccs <- compare_clustering_results(all_clusters, 
+								threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
+								min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
+								min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
+
+
+			V(g)$comm_louvain <- 0
+			cl_conv_table = as.data.frame(table(ccs$mbshp)) %>%
+				rename(comm_size = Freq) %>%
+				rename(cccc=Var1) %>%
+				arrange(-comm_size)
+		
+			#print("assigning cluster labels...")
+			cl_new_labels <- 1
+			for (clid in cl_conv_table$cccc){
+				selected_vids <- ccs %>%
+				filter(mbshp == clid) %>%
+				select(name) %>%
+				pull() %>%
+				unlist()
+
+				V(g)[ V(g)$name %in% selected_vids ]$comm_louvain <- cl_new_labels
+				cl_new_labels <- cl_new_labels + 1
+			}	
+			cons_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
+			n_m_i = NMI(true_labels,cons_labels)$value
 
 			j <- j + 1 
 			dfresults[j,] <- list(
@@ -202,64 +243,22 @@ for (mui in mu_values){
 								mu = mui, 
 								a = alpha,
 								r = resol,
-								method = "LV",
-								modularit = m,
-								nc = max(cluster_tmp$membership), 
+								method = "CONS",
+								modularit = modularity(g, V(g)$comm_louvain + 1 ),
+								nc = max(V(g)$comm_louvain + 1), 
 								nmi = n_m_i ,
-								membership  = as.list(mbs)
-								)			
+								membership  = list(V(g)$comm_louvain)
+								)	
+			
+			# as.data.frame(cons_labels, row.names = V(g)$name ) %>% 
+			# 	write_csv(paste0("results/cons_labels",mui,".csv"))
 		}
- 
-		ccs <- compare_clustering_results(all_clusters, 
-							threshold = .5, 	 # proportion of membership below which a node is assigned to community 0
-							min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
-							min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
-
-
-		V(g)$comm_louvain <- 0
-		cl_conv_table = as.data.frame(table(ccs$mbshp)) %>%
-			rename(comm_size = Freq) %>%
-			rename(cccc=Var1) %>%
-			arrange(-comm_size)
-	
-		#print("assigning cluster labels...")
-		cl_new_labels <- 1
-		for (clid in cl_conv_table$cccc){
-			selected_vids <- ccs %>%
-			filter(mbshp == clid) %>%
-			select(name) %>%
-			pull() %>%
-			unlist()
-
-			V(g)[ V(g)$name %in% selected_vids ]$comm_louvain <- cl_new_labels
-			cl_new_labels <- cl_new_labels + 1
-		}	
-		cons_labels <- data.frame(V(g)$name, V(g)$comm_louvain)
-		n_m_i = NMI(true_labels,cons_labels)$value
-
-		j <- j + 1 
- 
-		dfresults[j,] <- list(
-							rep = rep,
-							trial = i,
-							mu = mui, 
-							a = -1,
-							r = -1,
-							method = "CONS",
-							modularit = modularity(g, V(g)$comm_louvain + 1 ),
-							nc = max(V(g)$comm_louvain + 1), 
-							nmi = n_m_i ,
-							membership  = list(V(g)$comm_louvain)
-							)	
-		 
-		as.data.frame(cons_labels, row.names = V(g)$name ) %>% 
-			write_csv(paste0("results/cons_labels",mui,".csv"))
 	}
 }
 
 library(rjson)
 library(jsonlite) 
-json_data <- toJSON(dfresults, 		file = "results/summary_results.csv")
+json_data <- toJSON(dfresults)#, 		file = "results/summary_results.csv")
  
 write(json_data, file="results.JSON")
  
