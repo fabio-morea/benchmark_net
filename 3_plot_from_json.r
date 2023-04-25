@@ -117,4 +117,26 @@ ggsave("results/plot_nmi_nc.png")
 print("done")
 
 
+## PLOT Number of communities ##############################
+df <- extract_values(json_data, c('mu', 'nc', 'method', "nmi", 'a', 'rep', 'trial') )  %>% 
+    filter(trial == 1)
+    filter(a == 0)
+    
+alphas = list( unique( df$a[ (df$method == "LV") ] ))
+df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a"))
+plt <- ggplot(df, aes(x = nmi, y = nc, group = method, color = method )) +
+        facet_grid(rows = vars(mu), cols = vars(a)) +
+        geom_hline(yintercept = 37) +
+        geom_line( ) +
+        geom_point(aes(shape = method)) +
+        scale_color_manual(values=c("red", "blue")) +
+        #geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
+        theme_bw() +
+        xlab("nmi") +
+        ylab("number of communities") +
+        ggtitle(paste( 'NMI NC Alpha =' , alphas))
+print(plt)
+ggsave("results/plot_nmi_nc.png")
+print("done")
+
 
