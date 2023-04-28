@@ -33,7 +33,8 @@ df1 <- data.frame(  nmi = rep(df$nmi, len ),
                     cs = unlist(df$cs),
                     a = rep(df$a, len ),
                     method = rep(df$method, len),
-                    mu = rep(df$mu, len )
+                    mu = rep(df$mu, len ),
+                    modularit = rep(df$modularit, len)
                     ) %>%
         filter(a < 1) %>% 
         filter( mu %in% c(10,50,80))  %>% 
@@ -55,7 +56,7 @@ print(head(df1))
  
 p <- ggplot(df1 %>% 
         filter(mu == 10)%>% 
-        filter(r == 1) , 
+        filter(r <= 99) , 
     aes(x = nmi, y=cs, group = id, color = method))+
     #facet_grid(cols = vars(a)) +
 
@@ -70,7 +71,9 @@ p <- ggplot(df1 %>%
 print(p) 
 ggsave("plot comm distrib_mu10.png")
 
-p <- ggplot(df1 %>% filter(mu == 50)%>% filter(r == 1),
+p <- ggplot(df1 %>% 
+            filter(mu == 50)%>% 
+            filter(r <= 99),
     aes(x = nmi, y=cs, group = id, color = method))+
     #facet_grid(cols = vars(a)) +
     geom_line( size = 2, alpha = 0.2)+
@@ -85,7 +88,9 @@ print(p)
 ggsave("plot comm distrib_mu50.png")
 
 
-p <- ggplot(df1 %>% filter(mu == 80) %>% filter(r == 1),
+p <- ggplot(df1 %>% 
+            filter(mu == 80) %>% 
+            filter(r <= 99),
     aes(x = nmi, y=cs, group = id, color = method))+
     #facet_grid(cols = vars(a)) +
     geom_line( size = 2, alpha = 0.2)+
@@ -99,9 +104,10 @@ p <- ggplot(df1 %>% filter(mu == 80) %>% filter(r == 1),
 print(p) 
 ggsave("plot comm distrib_mu80.png")
 
-p <- ggplot(df1 %>%  filter(a == 0.1),
+p <- ggplot(df1 %>%  
+            filter(a == 0.1),
     aes(x = nmi, y=cs, group = id, color = method))+
-    facet_grid(rows = vars(mu)) +
+    #facet_grid(cols = vars(mu)) +
     geom_line( size = 2, alpha = 0.2)+
     geom_point( size = 1, alpha = 0.2)+
     geom_hline(yintercept = 20)+
@@ -115,11 +121,11 @@ ggsave("plot comm distrib_mu10 50 80.png")
 
 
 p <- ggplot(df1 %>% 
-                    filter(mu == 80) %>% 
+                    filter(mu == 50) %>% 
                     filter(method == "LV")  %>% 
-                    filter(a == 0)  %>% 
-                    filter(r < 4), 
-    aes(x = id, y=cs, group = id, color = method))+
+                    filter(a == 0.1)  %>% 
+                    filter(r < 99), 
+    aes(x = modularit, y=cs, group = id, color = method))+
     geom_line( size = 2, alpha = 0.2)+
     geom_point( size = 1, alpha = 0.2)+
     geom_hline(yintercept = 20)+
@@ -129,4 +135,4 @@ p <- ggplot(df1 %>%
     #ylim(0,200)+
     ggtitle("community size distribution (independent trials):  mu = 80")
 print(p) 
-ggsave("plot comm distrib_mu80_id.png")
+ggsave("plot comm distrib_modularit_nmi.png")

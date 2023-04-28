@@ -98,45 +98,67 @@ ggsave("results/plot_nc.png")
 
 
 ## PLOT Number of communities ##############################
-df <- extract_values(json_data, c('mu', 'nc', 'method', "nmi", 'a') )
-alphas = list( unique( df$a[ (df$method == "LV") ] ))
-df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a"))
-plt <- ggplot(df, aes(x = nmi, y = nc, group = method, color = method )) +
-        facet_grid(rows = vars(mu), cols = vars(a)) +
-        geom_hline(yintercept = 37) +
-        geom_line( ) +
-        geom_point(aes(shape = method)) +
-        scale_color_manual(values=c("red", "blue")) +
-        #geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
-        theme_bw() +
-        xlab("nmi") +
-        ylab("number of communities") +
-        ggtitle(paste( 'NMI NC Alpha =' , alphas))
-print(plt)
-ggsave("results/plot_nmi_nc.png")
-print("done")
+# df <- extract_values(json_data, c('mu', 'nc', 'method', "nmi", 'a') )
+# alphas = list( unique( df$a[ (df$method == "LV") ] ))
+# df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a"))
+# plt <- ggplot(df, aes(x = nmi, y = nc, group = method, color = method )) +
+#         facet_grid(rows = vars(mu), cols = vars(a)) +
+#         geom_hline(yintercept = 37) +
+#         geom_line( ) +
+#         geom_point(aes(shape = method)) +
+#         scale_color_manual(values=c("red", "blue")) +
+#         #geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
+#         theme_bw() +
+#         xlab("nmi") +
+#         ylab("number of communities") +
+#         ggtitle(paste( 'NMI NC Alpha =' , alphas))
+# print(plt)
+# ggsave("results/plot_nmi_nc.png")
 
 
 ## PLOT Number of communities ##############################
-df <- extract_values(json_data, c('mu', 'nc', 'method', "nmi", 'a', 'rep', 'trial') )  %>% 
-    filter(trial == 1)
-    filter(a == 0)
+# df <- extract_values(json_data, c('mu', 'nc', 'method', "nmi", 'a', 'rep', 'trial') )  %>% 
+#     filter(trial == 1)%>%
+#     filter(a == 0)
+    
+# alphas = list( unique( df$a[ (df$method == "LV") ] ))
+# df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a"))
+# plt <- ggplot(df, aes(x = nmi, y = nc, group = method, color = method )) +
+#         facet_grid(rows = vars(mu), cols = vars(a)) +
+#         geom_hline(yintercept = 37) +
+#         geom_line( ) +
+#         geom_point(aes(shape = method)) +
+#         scale_color_manual(values=c("red", "blue")) +
+#         #geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
+#         theme_bw() +
+#         xlab("nmi") +
+#         ylab("number of communities") +
+#         ggtitle(paste( 'NMI NC Alpha =' , alphas))
+# print(plt)
+# ggsave("results/plot_nmi_nc.png")
+
+
+
+
+
+## PLOT modularity - NMI ##############################
+df <- extract_values(json_data, c('mu', 'method', "nmi", 'a', 'rep', 'trial', 'modularit') )  %>% 
+    filter(a == 0.1)
     
 alphas = list( unique( df$a[ (df$method == "LV") ] ))
-df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a"))
-plt <- ggplot(df, aes(x = nmi, y = nc, group = method, color = method )) +
-        facet_grid(rows = vars(mu), cols = vars(a)) +
-        geom_hline(yintercept = 37) +
-        geom_line( ) +
-        geom_point(aes(shape = method)) +
+df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a", "modularit"))
+plt <- ggplot(df  %>% 
+                filter(mu %in% c( 20, 50, 80)), 
+                aes(x = modularit, y = nmi, group = method, color = method )) +
+        #facet_grid(cols = vars(mu) ) +
+        #geom_line( ) +
+        geom_point(aes(shape = method), size = 5, alpha = .2) +
         scale_color_manual(values=c("red", "blue")) +
-        #geom_errorbar(aes(ymin=nc-sd, ymax=nc+sd), width=.2,position=position_dodge(0.05))+
         theme_bw() +
-        xlab("nmi") +
-        ylab("number of communities") +
+        ylim(0,1)+
+        xlab("modularity") +
+        ylab("NMI") +
         ggtitle(paste( 'NMI NC Alpha =' , alphas))
 print(plt)
-ggsave("results/plot_nmi_nc.png")
+ggsave("results/plot_mod_nmi.png")
 print("done")
-
-
