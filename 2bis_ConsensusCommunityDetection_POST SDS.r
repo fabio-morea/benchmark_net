@@ -41,7 +41,6 @@ compare_clustering_results <- function(all_clusters,
 	rownames(x)<-V(g)$name
 
 	for (i in (1:n_trials)){
-		#print(paste("comparing cluster assignation ", i))
 		nclusters <- max(all_clusters[,i])
 		for (k in 1:nclusters) {
 			samecluster <- (which(all_clusters[,i]==k))
@@ -55,47 +54,47 @@ compare_clustering_results <- function(all_clusters,
 	}
 
 	remaining <- x/ncol(all_clusters) #normalize
-
+	v.processed <- 0
 	current.cluster = 0 	
-
-	consensus_clusters <- as_tibble_col(rownames(x)) %>% mutate(membership=0)
-		
-	min_weight <- (1/10000) * sum(V(g)$str) # counts only clusters above a given treshold
-	weights <- V(g)$str
-
-	#print("identify clusters above min_vids")
-	ccs <- tibble(name = "x", mbshp = -1, prob = 0.0) %>% head(0)
-	vids_to_process = nrow(remaining)	
-	while (vids_to_process > 0 ){
-		
+	ccs <- data.frame(name = V(g)$name)
+	ccs$mbshp = rep(0, nrow(ccs))
+	ccs$prob = rep(0, nrow(ccs))
+ 	
+	more_clusters_to_process = TRUE
+	while (more_clusters_to_process){
+		current.cluster <- current.cluster + 1
 		cluster_ii_members <- which(remaining[1, ] > 0)
-		if (length(cluster_ii_members) >1 ){
-			selected <- remaining[cluster_ii_members, cluster_ii_members]
-			current.cluster <- current.cluster + 1
+		v.processed <- v.processed + length(cluster_ii_members)
+		#print(paste("start While loop with v to process = ", dim(remaining)[1], v.processed ))
+
+		selected <- remaining[cluster_ii_members, cluster_ii_members]
+		if (is.matrix(selected)) {
 			for (j in 1:nrow(selected)) {
-				selected[j,j]<- 0.0 #diagonal elements do not matter
-				pp <- max(selected[j,])
+				selected[j,j]<- 0.0 #diagonal elements do not matter 
 				nn <- names(selected[1,])[j]
-				ccs <- ccs %>% add_row(name=nn , mbshp=current.cluster, prob = pp) 
-			}	
-			if (length(cluster_ii_members) <  nrow(remaining)-1) {
-				print(paste("Remaining ", nrow(remaining), "removing",length(cluster_ii_members) ))
-				remaining<- remaining[-cluster_ii_members, -cluster_ii_members]	
-			##ERRORE QUI: se rimuovo l'ultima riga non rimane più bidimensionale
-			## prova a rifarlo con tidyverse
-			print(nrow(remaining))
-			print(nrow(ccs))
-			} else {
-			   vids_to_process <-0
-			   ### NON VAL BENE: così salta l'ultimo cluster
-
+				ccs$mbshp[ccs$name == nn] <-  current.cluster
+				ccs$prob[ccs$name == nn] <-  max(selected[j,])
+				#print(paste("processing", nn, current.cluster , max(selected[j,])))
 			}
-			
-			vids_to_process <- vids_to_process - nrow(selected)
+		}
+		tmp <- remaining[-cluster_ii_members, -cluster_ii_members]
+		if (is.matrix(tmp)){
+				# print("tmp is a matrix of size")
+				# print(dim(tmp))
+			if (dim(tmp)[1] < 1 ){
 
-		} 
+				more_clusters_to_process <- FALSE
+			}
+			remaining <- tmp
+		} else {
+			# print("tmp is not a matrix")
+			more_clusters_to_process <- FALSE
+		}
+
+		  
 	}
-	print(nrow(ccs))	
+	
+		
 	return(ccs)
 }
 
@@ -103,16 +102,15 @@ compare_clustering_results <- function(all_clusters,
 ##################################### PARAMETERS
 
 # FLR benchmarl
-mu_values = seq(10, 99, 50)
+mu_values = seq(10, 99, 60)
 
 # repeated Louvain with modified params
 n_trials = 100
-alphas = c(0.0, 0.1, 0.2 )
-res = c(0.8, 1.0, 1.2)
+alphas = c(0.0 0.05, 0.1, 0.20, 0.30, 0.40, 0.50 )
+res = c(1.0)	#c(0.8, 1.0, 1.2)
 epsilon = 1/1000
-
 # consensus
-reps = 10
+reps = 20
 
 #####################################
 
@@ -185,7 +183,6 @@ for (mui in mu_values){
 								min_vids = 4, 		 # number of vertices below which a node is assigend to community 0
 								min_weight = 1/1000)  # (community weight / total network weight) below which a node is assigned to community 0
 
-			
 			V(g)$comm_louvain <- 0
 			V(g)$rob_mem <- 0
 			
