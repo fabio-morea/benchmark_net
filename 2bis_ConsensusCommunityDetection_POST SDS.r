@@ -55,16 +55,11 @@ compare_clustering_results <- function(all_clusters,
 
 	remaining <- x/ncol(all_clusters) #normalize
 
-	# Sort rows
-	remaining[order(apply(remaining, 1, max), decreasing = TRUE), ]
-	# Sort columns
-	remaining[, order(apply(remaining, 2, max), decreasing = TRUE)]
-
 	v.processed <- 0
 	current.cluster = 0 	
 	ccs <- data.frame(name = V(g)$name)
 	ccs$mbshp = rep(0, nrow(ccs))
-	ccs$prob = rep(0, nrow(ccs))
+	ccs$prob = apply(remaining, 1, max)
 
 	weights <- V(g)$str
  	min_weight <- min_w * sum(weights)  
