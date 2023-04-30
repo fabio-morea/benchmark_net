@@ -30,17 +30,31 @@ extract_values <- function(jd, cols_to_extract){
     names(df) <- cols_to_extract
     return(df)
 }
-################################################################à
-## load data: 
-json_data <- fromJSON("results.JSON")
 
-## extract data using tidyverse purr::pluck()
-# all_cols = colnames(json_data) 
-# rep trial mu  a r method modularit nc nmi membership 
-# print(all_cols)
+################################################################
+# read_json <- function(filename, cols_to_extract){
+#     json_data <- fromJSON("results_postSDS2.JSON") %>% 
+#         select(cols_to_extract)
 
+#     tmp_list <- list()
+#     nn <- length(cols_to_extract)
+#     for (i in 1:nn){
+#         tmp_list[[i]] <- pluck(json_data, cols_to_extract[i]) 
+#     }
+#     df <- data.frame(tmp_list)
+#     names(df) <- cols_to_extract
+#     return(df)
+# }
+
+# df <- read_json(    filename = "results_postSDS2.JSON", 
+#                     cols_to_extract = c('mu', 'nmi', 'method', "a",'rep', 'trial'), 
+#                  )
+                  
 
 ## PLOT NMI ##############################
+json_data <- fromJSON("results_postSDS.JSON")
+#json_data <- fromJSON("results.JSON")
+
 df <- extract_values(json_data, c('mu', 'nmi', 'method', "a") )
 alphas = list( unique( df$a[ (df$method == "LV") ] ))
 df <- data_summary(df, varname="nmi", groupnames=c("method", "mu" , "a" ))
@@ -150,8 +164,8 @@ df <- data_summary(df, varname="nc", groupnames=c("method", "mu", "nmi" , "a", "
 plt <- ggplot(df  %>% 
                 filter(mu %in% c( 20, 50, 80)), 
                 aes(x = modularit, y = nmi, group = method, color = method )) +
-        #facet_grid(cols = vars(mu) ) +
-        #geom_line( ) +
+        facet_grid(cols = vars(mu) ) +
+        geom_line( ) +
         geom_point(aes(shape = method), size = 5, alpha = .2) +
         scale_color_manual(values=c("red", "blue")) +
         theme_bw() +
@@ -161,4 +175,8 @@ plt <- ggplot(df  %>%
         ggtitle(paste( 'NMI NC Alpha =' , alphas))
 print(plt)
 ggsave("results/plot_mod_nmi.png")
+print("done")
+
+
+ 
 print("done")

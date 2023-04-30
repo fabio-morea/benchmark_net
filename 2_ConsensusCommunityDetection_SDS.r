@@ -136,16 +136,16 @@ compare_clustering_results <- function(all_clusters,
 ##################################### PARAMETERS
 
 # FLR benchmarl
-mu_values = seq(10, 99, 10)
+mu_values = seq(10, 99, 50)
 
 # repeated Louvain with modified params
-n_trials = 20
-alphas = c(0.0, 0.05, 0.1 )
+n_trials = 5
+alphas = c(0.0, 0.05 )
 res = c(0.9, 1.0, 1.1)
 epsilon = 1/1000
 
 # consensus
-reps = 10
+reps = 1
 
 #####################################
 
@@ -179,7 +179,7 @@ for (mui in mu_values){
 
 			all_clusters <- c()
 			for (i in 1:n_trials){
-				print(paste("Trial", i))
+				#print(paste("Trial", i))
 				n_items <- length(E(g))
 				n_null <- as.integer(alpha * n_items)
 				applied_weights <- E(g)$ww 
@@ -190,7 +190,7 @@ for (mui in mu_values){
 				all_clusters <- cbind(all_clusters,cluster_tmp$membership)
 				m <- modularity (g,  cluster_tmp$membership)	
 				mbs <- list(cluster_tmp$membership)		
-					
+				print(max(cluster_tmp$membership))
 				louvain_labels <- data.frame(V(g)$name, all_clusters[,i])
 				n_m_i = NMI(true_labels,louvain_labels)$value
 
@@ -258,7 +258,7 @@ for (mui in mu_values){
 
 library(rjson)
 library(jsonlite) 
-json_data <- toJSON(dfresults)#, 		file = "results/summary_results.csv")
+json_data <- toJSON(dfresults)#
  
 write(json_data, file="results.JSON")
  
